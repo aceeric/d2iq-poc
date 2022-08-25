@@ -1,0 +1,303 @@
+#!/usr/bin/env bash
+#
+# Provisions an EC2 instance. This script is intended to be run on any Linux
+# environment with the AWS CLI installed. This is a general purpose version which has
+# been successfully used in my personal AWS account. An SSH key pair is required,
+# which is wired into the VM supporting passwordless ssh.
+#
+
+short_opts=hdv:
+long_opts=help,dry-run,vol-size:
+script_name=$(basename "$0")
+
+dry_run=0
+vol_size=30
+scriptdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+function usage() {
+  awk '{if (NR!=1) print substr($0,5)}' <<< '
+    Creates an EC2 instance using the AWS CLI "ec2 run-instances" command. Hence, valid
+    AWS credentials are required.
+
+    Usage: provision-ec2-instancez [--dry-run] [--vol-size n] -- [SSH Keys path] [VPC ID]
+           [subnet availability zone] [security group name] [AMI name] [instance type]
+           [instance name]
+
+    Options:
+    
+      -h,--help           Prints this help and exits
+      -d,--dry-run        Causes the script to print the AWS identifiers that the script
+                          looked up based on positional params, and then exit. It is
+                          recommended to always use --dry-run first to validate the lookups
+                          worked as expected
+      -v,--vol-size n     Specifies the size of the disk. Defaults to 30. Value is interpreted
+                          as gigs. E.g. "30" means "30 gigs"
+
+    Positional params:
+
+      SSH Keys path        Path to an ssh private key. Expectation is the public key will be
+                           in the same location, with the same name, postfixed with ".pub". E.g.:
+                           "~/.ssh/id_rsa" with the expectation that "~/.ssh/id_rsa.pub" also
+                           exists.
+      VPC ID               E.g. "vpc-c44a96a1"
+      Subnet AZ name       Subnet availability zone within VPC. E.g. "us-east-subnet-3"
+      Security group name  E.g. "default"
+      AMI name             The script interprets the AMI name parameter as "starts with"
+      Instance type        E.g. "t2.micro"
+      Instance name        The name you assign to the instance, e.g. "my-test-instance"
+
+    Example:
+
+    provision-ec2-instancez\
+      --dry-run \
+      --vol-size 200 \
+      ./d2iq \
+      vpc-c44a96a1 \
+      us-east-1c \
+      default \
+      CentOS-7-2111-20220330_2.x86_64 \
+      t3.xlarge \
+      d2iq-bootstrap
+
+    Performs a dry run:
+
+    Specifies a volume size of 200Gb. Indicates ssh private key "d2iq" and public key "d2iq.pub"
+    are in the current working directory. Creates an instance in the VPC "vpc-c44a96a1", and within
+    that the "us-east-1c" subnet. Assigns the instance to the security group named "default". Selects
+    an AMI starting with "CentOS-7-2111-20220330_2.x86_64". (This particular AMI is an Amazon AMI that
+    requires you to subscribe and accept the EULA in the AWS Console.) Uses instance type "t3.xlarge"
+    and names the instance "d2iq-bootstrap".
+    '
+}
+
+# this is a cloud config template "file". Values will be interpolated into it below
+# and the iterpolated result written to a temp file for mounting into the instance.
+cloud_config_template='#cloud-config
+
+users:
+- name: USER
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  ssh_authorized_keys:
+  - PUBKEYCONTENT
+
+write_files:
+- path: PRIVKEYPATH
+  permissions: "0600"
+  encoding: base64
+  content: PRIVKEYCONTENT
+- path: PUBKEYPATH
+  content: PUBKEYCONTENT
+  permissions: "0644"
+runcmd:
+- "chown -R USER:USER /home/USER"
+'
+
+#
+# Creates a cloud-config.yaml file.
+#
+# args
+# - $1 - the directory to write the output file to
+# 
+# script vars:
+# - SSH_KEYS               From positional params
+# - cloud_config_template  The template
+# - USER                   Env var
+#
+function gen_cloud_config() {
+  echo "generating cloud config file: $1/cloud-config.yaml"
+  local pubkey=$(cat "$SSH_KEYS.pub")
+  local privkey=$(base64 -w 0 "$SSH_KEYS")
+  echo "$cloud_config_template" | sed \
+    -e "s|USER|${USER#*\\}|g" \
+    -e "s|PRIVKEYPATH|/home/${USER#*\\}/.ssh/$(basename $SSH_KEYS)|g" \
+    -e "s|PUBKEYPATH|/home/${USER#*\\}/.ssh/$(basename $SSH_KEYS).pub|g" \
+    -e "s|PRIVKEYCONTENT|$privkey|g" \
+    -e "s|PUBKEYCONTENT|$pubkey|g" \
+    >| $1/cloud-config.yaml
+}
+
+#
+# Options parser helper only called by parse_args
+#
+function opt_val() {
+  opt="$1"
+  if [[ "$opt" == =* ]]; then
+    echo "${opt:1}"
+  else
+    echo "$opt"
+  fi
+}
+
+#
+# Parses the command line
+#
+function parse_args() {
+  local parsed
+  parsed=$(getopt --options $short_opts --longoptions $long_opts -n $script_name -- "$@")
+  
+  if [[ "$?" -ne 0 ]]; then
+    exit 1
+  fi
+
+  eval set -- "$parsed"
+
+  while true; do
+    case "$1" in
+      -h|--help)
+        usage
+        exit 1
+        ;;
+      -v|--vol-size)
+        vol_size=$(opt_val "$2")
+        shift 2
+        ;;
+      -d|--dry-run)
+        dry_run=1
+        shift 1
+        ;;
+      --)
+        shift
+        break
+        ;;
+    esac
+  done
+
+  if [[ $# -ne 7 ]]; then
+    echo "$script_name: incorrect positional parameters"
+    exit 1
+  fi
+
+  # assign positional params to script vars
+
+  SSH_KEYS="$1"
+  VPC_ID="$2"
+  SUBNET_AZ="$3"
+  SECURITY_GRP_NAME="$4"
+  AMI_NAME="$5"
+  AMI_NAME_FOUND=
+  INSTANCE_TYPE="$6"
+  INSTANCE_NAME="$7"
+}
+
+# Entry point
+
+parse_args "$@"
+
+# debug
+# echo "SSH_KEYS=$SSH_KEYS"
+# echo "VPC_ID=$VPC_ID"
+# echo "SUBNET_AZ=$SUBNET_AZ"
+# echo "SECURITY_GRP_NAME=$SECURITY_GRP_NAME"
+# echo "AMI_NAME=$AMI_NAME"
+# echo "INSTANCE_TYPE=$INSTANCE_TYPE"
+# echo "INSTANCE_NAME=$INSTANCE_NAME"
+# echo "DRY_RUN=$dry_run"
+# echo "VOL_SIZE=$vol_size"
+# exit
+
+if [[ ! -f "$SSH_KEYS" ]] || [[ ! -f "$SSH_KEYS.pub" ]]; then
+  echo "Expected two files $SSH_KEYS and $SSH_KEYS.pub but did not find either/both"
+  exit 1
+fi
+
+echo "checking credentials"
+if ! aws sts get-caller-identity &>/dev/null; then
+  echo "can't establish AWS identity"
+  exit 1
+fi
+
+# look up AWS IDs for all human readable values
+
+echo "looking AMI info for $AMI_NAME"
+AMI_INFO=$(aws ec2 describe-images --filter "Name=name,Values=$AMI_NAME*" --query 'Images[0].[ImageId,Name]' --output text)
+AMI_INFO=($AMI_INFO)
+AMI_ID=${AMI_INFO[0]}
+AMI_NAME_FOUND=${AMI_INFO[1]}
+
+echo "looking up subnet $SUBNET_AZ"
+SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=$SUBNET_AZ"\
+            --query 'Subnets[0].SubnetId' --output text)
+
+echo "looking up security group $SECURITY_GRP_NAME"
+SECURITY_GRP_ID=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=$SECURITY_GRP_NAME"\
+                  --query 'SecurityGroups[0].GroupId' --output text)
+
+echo "instance creation params:"
+echo " SSH_KEYS=$SSH_KEYS"
+echo " VPC_ID=$VPC_ID"
+echo " SUBNET_AZ=$SUBNET_AZ"
+echo " SUBNET_ID=$SUBNET_ID"
+echo " SECURITY_GRP_NAME=$SECURITY_GRP_NAME"
+echo " SECURITY_GRP_ID=$SECURITY_GRP_ID"
+echo " AMI_NAME=$AMI_NAME"
+echo " AMI_NAME_FOUND=$AMI_NAME_FOUND"
+echo " AMI_ID=$AMI_ID"
+echo " INSTANCE_TYPE=$INSTANCE_TYPE"
+echo " INSTANCE_NAME=$INSTANCE_NAME"
+echo " VOL_SIZE=$vol_size"
+
+if [[ dry_run -eq 1 ]]; then
+  exit
+fi
+
+echo "creating instance $INSTANCE_NAME"
+
+tmpdir=$(mktemp -d)
+gen_cloud_config $tmpdir
+aws ec2 run-instances\
+ --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":'$vol_size',"DeleteOnTermination":true}}]'\
+ --image-id $AMI_ID\
+ --instance-type $INSTANCE_TYPE\
+ --security-group-ids $SECURITY_GRP_ID\
+ --subnet-id $SUBNET_ID\
+ --count 1\
+ --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value='$INSTANCE_NAME'},{Key=nostartup,Value=true}]'\
+ --user-data file://$tmpdir/cloud-config.yaml \
+ >| /tmp/run-instance.result.json
+
+if [[ $? -ne 0 ]]; then
+  echo "instance creation failed - stopping"
+  exit 1
+fi
+
+# getting instance ID has some complexity to deal with cases where there are multiple instances
+# with the same name, and one or more are terminated but not destroyed, and we're looking for
+# the one with the same name that is running...
+
+echo "getting the instance ID"
+INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$INSTANCE_NAME"\
+              --query 'Reservations[*].Instances[?!contains(State.Name, '"'terminated'"')].InstanceId'\
+              --output text)
+
+echo "waiting for instance $INSTANCE_ID to be ready"
+while true; do
+  INSTANCE_STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID\
+                    --query 'InstanceStatuses[0].InstanceStatus.Status' --output text)
+  if [[ $INSTANCE_STATUS == "ok" ]]; then
+    break
+  fi
+  echo "...sleeping 20 seconds"
+  sleep 20s
+done
+echo "instance is ready"
+
+echo "getting instance info"
+INSTANCE_INFO=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID\
+                  --query 'Reservations[0].Instances[0].[PrivateIpAddress,PrivateDnsName,PublicIpAddress,PublicDnsName]' --output text)
+
+INSTANCE_INFO=($INSTANCE_INFO)
+
+PRIVATE_IP=${INSTANCE_INFO[0]}
+PRIVATE_DNS_NAME=${INSTANCE_INFO[1]}
+PUBLIC_IP=${INSTANCE_INFO[2]}
+PUBLIC_DNS_NAME=${INSTANCE_INFO[3]}
+
+echo "Instance info"
+echo " Private IP : $PRIVATE_IP"
+echo " Private DNS: $PRIVATE_DNS_NAME"
+echo " Public IP  : $PUBLIC_IP"
+echo " Public DNS : $PUBLIC_DNS_NAME"
+echo
+echo "you can now ssh in to the VM:"
+echo
+echo "ssh -i $SSH_KEYS ${USER#*\\}@$PUBLIC_DNS_NAME"
