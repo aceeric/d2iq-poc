@@ -6,11 +6,12 @@
 # which is wired into the VM supporting passwordless ssh.
 #
 
-short_opts=hdv:
-long_opts=help,dry-run,vol-size:
+short_opts=hdnv:
+long_opts=help,dry-run,nowait,vol-size:
 script_name=$(basename "$0")
 
 dry_run=0
+wait=1
 vol_size=30
 scriptdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -19,7 +20,7 @@ function usage() {
     Creates an EC2 instance using the AWS CLI "ec2 run-instances" command. Hence, valid
     AWS credentials are required.
 
-    Usage: provision-ec2-instancez [--dry-run] [--vol-size n] -- [SSH Keys path] [VPC ID]
+    Usage: provision-ec2-instancez [--dry-run] [--nowait] [--vol-size n] -- [SSH Keys path] [VPC ID]
            [subnet availability zone] [security group name] [AMI name] [instance type]
            [instance name]
 
@@ -30,6 +31,7 @@ function usage() {
                           looked up based on positional params, and then exit. It is
                           recommended to always use --dry-run first to validate the lookups
                           worked as expected
+      -n, --nowait        Do not wait for the VM to be ready before exiting the script
       -v,--vol-size n     Specifies the size of the disk. Defaults to 30. Value is interpreted
                           as gigs. E.g. "30" means "30 gigs"
 
@@ -155,6 +157,10 @@ function parse_args() {
         dry_run=1
         shift 1
         ;;
+     -n|--nowait)
+        wait=0
+        shift 1
+        ;;
       --)
         shift
         break
@@ -258,6 +264,11 @@ aws ec2 run-instances\
 if [[ $? -ne 0 ]]; then
   echo "instance creation failed - stopping"
   exit 1
+fi
+
+if [[ $wait -eq 0 ]]; then
+  echo "--nowait was specified: exiting"
+  exit 0
 fi
 
 # getting instance ID has some complexity to deal with cases where there are multiple instances

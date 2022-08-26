@@ -1,18 +1,16 @@
 # Configure the bootstrap VM
 
+**Context Dev VM**
+
 ```
-ssh -i ./d2iq -o 'StrictHostKeyChecking no' esace@ip-10-114-148-44.ec2.internal
+ssh -i ./d2iq ${USER#*\\}@$d2iq_bootstrap
 ```
 
-## Set SELinux disabled
-```
-sudo sed -e 's/SELINUX=enforcing/SELINUX=disabled/' -i /etc/selinux/config
-sudo shutdown -r now
-```
+## Install Docker
 
-SSH Back in to the instance.
+**Context Bootstrap VM**
 
-## Docker
+This will log you out of the bootstrap VM so the docker permissions take effect. So after this step, log back in to the bootstrap VM:
 ```
 sudo yum install -y yum-utils
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
@@ -137,28 +135,12 @@ Should produce:
 # registryroot
 ```
 
-## Get D2IQ tarball and inflate it
+### Add registry CA to OS truststore on all cluster VMs
 
+Enable all cluster VMs to pull from the private registry hosted on the bootstrap VM:
 ```
-cd ~
-
-curl -fL\
-  https://s3.amazonaws.com/se.downloads.d2iq/dkp/v2.2.2/dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz\
-  -o dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz
-
-tar -zxvf dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz
-rm -f dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz
-```
-
-## Load the Konvoy bootstrap image
-
-```
-docker load -i dkp-v2.2.2/konvoy-bootstrap_v2.2.2.tar
-```
-
-## Seed the docker bootstrap registry
-```
-dkp-v2.2.2/dkp push image-bundle\
-  --image-bundle dkp-v2.2.2/konvoy_image_bundle_v2.2.2_linux_amd64.tar.gz\
-  --to-registry $(hostname):5000
+for vmip in $d2iq_cp1 $d2iq_cp2 $d2iq_cp3 $d2iq_w1 $d2iq_w2 $d2iq_w3; do\
+  scp -i ~/.ssh/d2iq ca.pem $USER@$vmip:.;\
+  ssh -t -i ~/.ssh/d2iq $USER@$vmip 'sudo mv ca.pem /etc/pki/ca-trust/source/anchors/private-registry.ca && sudo update-ca-trust';\
+done
 ```

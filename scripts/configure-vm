@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+sudo systemctl is-active firewalld && sudo systemctl disable --now firewalld
+sudo yum -y install iptables-services
+sudo systemctl enable --now iptables ip6tables
+sudo swapoff -a
+sudo grep swap /etc/fstab && sudo sed -i "/ swap /d" /etc/fstab
+sudo sed -e 's/SELINUX=enforcing/SELINUX=disabled/' -i /etc/selinux/config
+sudo yum clean all && sudo yum -y update && sudo shutdown -r now && exit
