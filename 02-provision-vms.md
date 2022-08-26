@@ -53,6 +53,9 @@ export d2iq_w3=10.114.148.22
 
 ## Configure known hosts TODO CONSIDER JUST STRICT HOST CHECKING NO LS CUZ THIS NOT WORKEE
 
+TODO TODO TODO SHOULD IT BE -t ed25519 ?????????????
+
+
 This will configure your known hosts file to avoid fingerprint collisions and yes/no prompts when ssh'ing into the VMs the first time:
 ```
 for vmip in $d2iq_bootstrap $d2iq_cp1 $d2iq_cp2 $d2iq_cp3 $d2iq_w1 $d2iq_w2 $d2iq_w3; do\
