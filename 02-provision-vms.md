@@ -26,7 +26,13 @@ aws ec2 describe-instances --filters "Name=tag:Name,Values=d2iq*"\
   --output table
 ```
 
+TODO TODO TODO TODO THIS HAS TO BE RE-WORKED FOR MY AWS - LEAVE THIS AND MAKE A NEW ONE!
+
+
+
 ## Generate environment variable exports
+
+This snippet will generate an `export` statement for the private IP address of each  VM. You will use these environment variables in the bootstrap VM:
 ```
 while read line; do\
   line=($line);\

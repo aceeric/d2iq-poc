@@ -2,6 +2,8 @@
 
 Based on: https://archive-docs.d2iq.com/dkp/konvoy/2.2/choose-infrastructure/pre-provisioned/define-infrastructure/
 
+**Context: Bootstrap VM**
+
 ## Environment vars
 ```
 export CONTROL_PLANE_1_ADDRESS=$d2iq_cp1
@@ -67,7 +69,7 @@ spec:
 EOF
 ```
 
-## Generate into the bootstrap cluster
+## Create `PreprovisionedInventory` CRs in the bootstrap cluster
 ```
 kubectl apply -f ~/preprovisioned_inventory.yaml
 ```

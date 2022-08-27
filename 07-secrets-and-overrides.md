@@ -2,12 +2,14 @@
 
 Based on: https://archive-docs.d2iq.com/dkp/konvoy/2.2/choose-infrastructure/pre-provisioned/create-secrets-and-overrides/
 
+**Context: Bootstrap VM**
+
 ## Cluster name
 ```
 export CLUSTER_NAME=d2iq-poc
 ```
 
-## Secret
+## SSH Secret
 ```
 export SSH_PRIVATE_KEY_FILE=~/.ssh/d2iq
 export SSH_PRIVATE_KEY_SECRET_NAME=$CLUSTER_NAME-ssh-key

@@ -6,13 +6,14 @@
 # which is wired into the VM supporting passwordless ssh.
 #
 
-short_opts=hdnv:
-long_opts=help,dry-run,nowait,vol-size:
+short_opts=hdnv:p:
+long_opts=help,dry-run,nowait,vol-size:,public-ip:
 script_name=$(basename "$0")
 
 dry_run=0
 wait=1
 vol_size=30
+public_ip_arg="--associate-public-ip-address"
 scriptdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 function usage() {
@@ -20,8 +21,8 @@ function usage() {
     Creates an EC2 instance using the AWS CLI "ec2 run-instances" command. Hence, valid
     AWS credentials are required.
 
-    Usage: provision-ec2-instancez [--dry-run] [--nowait] [--vol-size n] -- [SSH Keys path] [VPC ID]
-           [subnet availability zone] [security group name] [AMI name] [instance type]
+    Usage: provision-ec2-instancez [--dry-run] [--nowait] [--vol-size n] [--public-ip y|n] -- [SSH Keys path]
+           [VPC ID] [subnet availability zone] [security group name] [AMI name] [instance type]
            [instance name]
 
     Options:
@@ -34,6 +35,8 @@ function usage() {
       -n, --nowait        Do not wait for the VM to be ready before exiting the script
       -v,--vol-size n     Specifies the size of the disk. Defaults to 30. Value is interpreted
                           as gigs. E.g. "30" means "30 gigs"
+      -p,--public-ip y|n  Default is "y" - meaning allocate a public IP for the instance. If
+                          "n", then no public IP is allocated.                    
 
     Positional params:
 
@@ -157,9 +160,16 @@ function parse_args() {
         dry_run=1
         shift 1
         ;;
-     -n|--nowait)
+      -n|--nowait)
         wait=0
         shift 1
+        ;;
+      -p|--public-ip)
+        tmp=$(opt_val "$2")
+        if [[ $tmp == "n" ]]; then
+          public_ip_arg="--no-associate-public-ip-address"
+        fi
+        shift 2
         ;;
       --)
         shift
@@ -241,6 +251,7 @@ echo " AMI_ID=$AMI_ID"
 echo " INSTANCE_TYPE=$INSTANCE_TYPE"
 echo " INSTANCE_NAME=$INSTANCE_NAME"
 echo " VOL_SIZE=$vol_size"
+echo " PUBLIC_IP_ARG=$public_ip_arg"
 
 if [[ dry_run -eq 1 ]]; then
   exit
@@ -251,6 +262,7 @@ echo "creating instance $INSTANCE_NAME"
 tmpdir=$(mktemp -d)
 gen_cloud_config $tmpdir
 aws ec2 run-instances\
+ $public_ip_arg\
  --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":'$vol_size',"DeleteOnTermination":true}}]'\
  --image-id $AMI_ID\
  --instance-type $INSTANCE_TYPE\

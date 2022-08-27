@@ -1,6 +1,6 @@
-# Get D2IQ tarball and copy files to cluster VMS
+# Get D2IQ tarball and copy files to cluster VMs
 
-**Context Bootstrap VM**
+**Context: Bootstrap VM**
 
 ## Get D2IQ tarball and inflate it
 ```
@@ -10,8 +10,8 @@ curl -fL\
   https://s3.amazonaws.com/se.downloads.d2iq/dkp/v2.2.2/dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz\
   -o dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz
 
-tar -zxvf dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz
-rm -f dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz
+tar -zxvf dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz &&\
+  rm -f dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz
 ```
 
 ## Load the Konvoy bootstrap image
@@ -29,7 +29,7 @@ dkp-v2.2.2/dkp push image-bundle\
 
 ## Copy artifacts to hosts
 
-This uses the `d2iq-konvoy` utility
+This uses the `d2iq-konvoy` utility to copy artifacts to all the cluster VMs.
 
 ### Set env vars
 ```
@@ -52,7 +52,7 @@ cd /var/d2iq/dkp-v2.2.2/kib
 
 ### Generate inventory.yaml
 
-This yaml includes a timeout specifier to overcome `konvoy-image upload` timeouts.
+This yaml includes a timeout specifier to overcome `konvoy-image upload` timeouts experienced in AWS.
 ```
 mv inventory.yaml inventory.yaml.original
 cat <<EOF > inventory.yaml
@@ -78,7 +78,7 @@ all:
 EOF
 ```
 
-### Move artifacts under `kib` directory per D2IQ
+### Move artifacts under `kib/artifacts` directory per D2IQ
 ```
 mkdir -p ./artifacts/images
 cp -r ../artifacts/images ./artifacts

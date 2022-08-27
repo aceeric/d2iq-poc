@@ -1,6 +1,6 @@
 # Prepare
 
-All instructions assume you are in the repository root.
+All instructions assume you have git cloned this repo and you are in the repository root directory.
 
 ## Generate SSH key pair
 

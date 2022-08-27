@@ -1,16 +1,10 @@
 # Configure the bootstrap VM
 
-**Context Dev VM**
-
-```
-ssh -i ./d2iq ${USER#*\\}@$d2iq_bootstrap
-```
+**Context: Bootstrap VM**
 
 ## Install Docker
 
-**Context Bootstrap VM**
-
-This will log you out of the bootstrap VM so the docker permissions take effect. So after this step, log back in to the bootstrap VM:
+On complettion, the snippet below will log you out of the bootstrap VM in order that the docker permissions can take effect. So after this step, log back in to the bootstrap VM:
 ```
 sudo yum install -y yum-utils
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
@@ -123,7 +117,7 @@ If successful, then the private registry is configured.
 
 ### Add registry CA to OS truststore
 
-Or the `dpk` command on the bootstrap VM fails:
+Or the `dpk` command on the bootstrap VM fails. Unclear why:
 ```
 sudo cp ca.pem /etc/pki/ca-trust/source/anchors/private-registry.ca
 sudo update-ca-trust

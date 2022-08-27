@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#
+# Creates all the VMs for the POC. All VMs get internal IP addresses, but only bootstrap
+# and control plane 1 will get public IPs. Note - the instance settings make sense for
+# my account - of course you will have to tweak them. Note that CentOS-7-2111-20220330_2.x86_64
+# is an Amazon image that requires you to subscribe it and accept the EULA in the management
+# console.
+#
+# Consider running provision-ec2-instancez first with the --dry-run arg.
+#
+
+TODO TODO TODO TODO TODO  CHANGE TO LARGE 200
+
+for vmname in d2iq-bootstrap d2iq-cp1 d2iq-cp2 d2iq-cp3 d2iq-w1 d2iq-w2 d2iq-w3; do
+  public_ip='n'
+  if [[ $vmname == "d2iq-bootstrap" ]] || [[ $vmname == "d2iq-cp1" ]]; then
+    public_ip='y'
+  fi
+  ./scripts/provision-ec2-instancez\
+    --vol-size 20 \
+    --public-ip $public_ip \
+    --nowait \
+    $(pwd)/d2iq \
+    vpc-c44a96a1 \
+    us-east-1c \
+    default \
+    CentOS-7-2111-20220330_2.x86_64 \
+    t2.micro \
+    $vmname || break
+done

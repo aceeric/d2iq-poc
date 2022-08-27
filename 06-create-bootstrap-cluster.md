@@ -2,6 +2,8 @@
 
 Per https://archive-docs.d2iq.com/dkp/konvoy/2.2/choose-infrastructure/pre-provisioned/bootstrap/
 
+**Context: Bootstrap VM**
+
 ```
 cd /var/d2iq/dkp-v2.2.2
 ./dkp create bootstrap

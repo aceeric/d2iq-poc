@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# Makes a few configuration changes to a VM as required by D2IQ.
+#
 
 sudo systemctl is-active firewalld && sudo systemctl disable --now firewalld
 sudo yum -y install iptables-services

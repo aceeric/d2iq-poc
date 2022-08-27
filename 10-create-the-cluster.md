@@ -2,6 +2,7 @@
 
 Per: https://archive-docs.d2iq.com/dkp/konvoy/2.2/choose-infrastructure/pre-provisioned/create-cluster/
 
+**Context: Bootstrap VM**
 
 ## Directory context
 ```
@@ -16,6 +17,10 @@ export DOCKER_REGISTRY_CA=~/pki/ca.pem
 ```
 
 ## Create the downstream cluster
+
+
+TODO DOCUMENT WHERE EP HOST COMES FROM
+
 ```
 ./dkp create cluster preprovisioned\
   --cluster-name $CLUSTER_NAME\

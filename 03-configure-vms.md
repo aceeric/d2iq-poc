@@ -16,11 +16,11 @@ ssh -i d2iq ${USER#*\\}@$d2iq_bootstrap
 
 ## Configure the cluster VMs
 
-**Context Bootstrap VM**
+**Context: Bootstrap VM**
 
-### Configure login with VM IP addresses
+### Configure user login with VM IP addresses
 
-This will set the VM IP address variables on each login:
+This will set the VM IP address variables on each login to the bootstrap VM:
 ```
 cat <<EOF > ~/.bash_profile
 #!/bin/bash
@@ -54,7 +54,9 @@ done
 ```
 ### Configure worker storage
 
-Configure directories for the storage provisioner on the workers. The preflight docs call for 55 GB X 8 drives and mounts. For now, just simulate it with directories.
+Wait a moment for the VMs to come back up after the prior step.
+
+Configure directories for the storage provisioner on the workers. The preflight docs call for 55 GB X 8 drives and mounts. For now, just simulate that with directories.
 
 ```
 for vmip in $d2iq_w1 $d2iq_w2 $d2iq_w3; do\
