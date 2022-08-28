@@ -9,6 +9,32 @@ cd /var/d2iq/dkp-v2.2.2
 ./dkp create bootstrap
 ```
 
+Output:
+```
+You are relying on the default value for flag '--with-aws-bootstrap-credentials', the current default 'true' will be changed to 'false' in a future release.
+ ✓ Creating a bootstrap cluster 
+Unable to encode AWS credentials: unable to determine AWS credentials: unable to create AWS credentials: NoCredentialProviders: no valid providers in chain
+caused by: EnvAccessKeyNotFound: failed to find credentials in the environment.
+SharedCredsLoad: failed to load profile, .
+EC2RoleRequestError: no EC2 instance role found
+caused by: EC2MetadataError: failed to make EC2Metadata request
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+ <head>
+  <title>404 - Not Found</title>
+ </head>
+ <body>
+  <h1>404 - Not Found</h1>
+ </body>
+</html>
+
+	status code: 404, request id: . Update bootstrap credentials with 'dkp update bootstrap credentials aws' before launching AWS clusters
+ ✓ Initializing new CAPI components 
+```
+
+
 Success looks like:
 ```
 $ kubectl get po -A
@@ -31,5 +57,4 @@ kube-system                         kube-apiserver-konvoy-capi-bootstrapper-cont
 kube-system                         kube-controller-manager-konvoy-capi-bootstrapper-control-plane   1/1
 kube-system                         kube-proxy-6wdlz                                                 1/1
 kube-system                         kube-scheduler-konvoy-capi-bootstrapper-control-plane            1/1
-
 ```

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#
+# Generate export statements for VM ip addresses and DNS names used
+# throughtout the POC.
+#
+
+while read line; do
+  unset dns_name;
+  line=($line);
+  vmname=${line[0]};
+  ip=${line[1]};
+  dns_name=${line[2]};
+  echo "export ${vmname/-/_}=$ip";
+  [[ ! -z "$dns_name" ]] && echo "export ${vmname/-/_}_dns_name=$dns_name";
+done < <(aws ec2 describe-instances --filters "Name=tag:Name,Values=d2iq*"\
+  --query "Reservations[*].Instances[?!contains(State.Name, '"'terminated'"')].[Tags[?Key=='Name']| [0].Value,PrivateIpAddress,PublicDnsName]"\
+  --output text | sort)

@@ -3,7 +3,7 @@
 # Provisions an EC2 instance. This script is intended to be run on any Linux
 # environment with the AWS CLI installed. This is a general purpose version which has
 # been successfully used in my personal AWS account. An SSH key pair is required,
-# which is wired into the VM supporting passwordless ssh.
+# which is wired into the VM using cloud init to support passwordless ssh.
 #
 
 short_opts=hdnv:p:
@@ -44,8 +44,8 @@ function usage() {
                            in the same location, with the same name, postfixed with ".pub". E.g.:
                            "~/.ssh/id_rsa" with the expectation that "~/.ssh/id_rsa.pub" also
                            exists.
-      VPC ID               E.g. "vpc-c44a96a1"
-      Subnet AZ name       Subnet availability zone within VPC. E.g. "us-east-subnet-3"
+      VPC ID               E.g. "vpc-<hex string>"
+      Subnet AZ name       Subnet availability zone within VPC. E.g. "us-east-1a"
       Security group name  E.g. "default"
       AMI name             The script interprets the AMI name parameter as "starts with"
       Instance type        E.g. "t2.micro"
@@ -57,17 +57,17 @@ function usage() {
       --dry-run \
       --vol-size 200 \
       ./d2iq \
-      vpc-c44a96a1 \
+      vpc-foobarbaz \
       us-east-1c \
       default \
-      CentOS-7-2111-20220330_2.x86_64 \
+      "CentOS-7-2111-2022*x86_64" \
       t3.xlarge \
       d2iq-bootstrap
 
     Performs a dry run:
 
     Specifies a volume size of 200Gb. Indicates ssh private key "d2iq" and public key "d2iq.pub"
-    are in the current working directory. Creates an instance in the VPC "vpc-c44a96a1", and within
+    are in the current working directory. Creates an instance in the VPC "vpc-foobarbaz", and within
     that the "us-east-1c" subnet. Assigns the instance to the security group named "default". Selects
     an AMI starting with "CentOS-7-2111-20220330_2.x86_64". (This particular AMI is an Amazon AMI that
     requires you to subscribe and accept the EULA in the AWS Console.) Uses instance type "t3.xlarge"

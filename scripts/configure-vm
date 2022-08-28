@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
-# Makes a few configuration changes to a VM as required by D2IQ.
+# Makes a configuration changes to a VM as required by D2IQ. Also disables
+# SELinux - this is preemptive and not indicated by D2IQ.  But I've lost
+# a lot of time on SELinux issues so - avoid those for the POC.
 #
 
 sudo systemctl is-active firewalld && sudo systemctl disable --now firewalld

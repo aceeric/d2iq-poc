@@ -2,11 +2,19 @@
 
 Stands up a D2IQ Kubernetes cluster in AWS with three control plane servers and three worker nodes. Uses the air-gapped tarball from D2IQ.
 
+This entire process takes one hour (for me.)
+
 ## Pre-requisites
 
-This POC assumes you have a Linux development environment with the AWS CLI installed and AWS credentials configured. This dev environment is referred to throughout these READMEs as your **Dev Env**. The POC also assumes you have privileges in AWS to manage EC2 instances.
+This POC assumes you have a Linux development environment with the AWS CLI installed and AWS credentials configured:
+```
+$ aws --version
+aws-cli/2.7.27 Python/3.9.11 Linux/5.18.10-76051810-generic exe/x86_64.ubuntu.20 prompt/off
+```
 
-Your AWS environment may differ, or have security constraints, etc. You'll have to adapt the instructions if so. The only impact should be the VM provisioning step. It is expected and required that each VM be able to reach the other via an internal IP, and that the bootstrap vm and one control plane VM are reachable via Public IPs.
+This dev environment is referred to throughout these READMEs as your **Dev Env**. The POC also assumes you have privileges in AWS to manage EC2 instances, etc.
+
+Your AWS environment may differ, or have security constraints, etc. You'll have to adapt the instructions if so. The only impact should be the VM provisioning step. It is expected and required that each VM be able to reach the other via an internal IP, and all VMs have outbound access to be able to do yum updates.
 
 This POC does not use a load balancer. The only reason that three control plane VMs are created is because D2IQ does not have documentation on how to stand up a single control-plane VM cluster.
 

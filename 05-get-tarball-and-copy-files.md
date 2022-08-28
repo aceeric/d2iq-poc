@@ -27,6 +27,12 @@ dkp-v2.2.2/dkp push image-bundle\
   --to-registry $(hostname):5000
 ```
 
+## Verify
+```
+curl -s https://$(hostname):5000/v2/_catalog\
+  | python -c 'import json, sys; print(json.dumps(json.loads(sys.stdin.read()), indent=4, sort_keys=True))'
+```
+
 ## Copy artifacts to hosts
 
 This uses the `d2iq-konvoy` utility to copy artifacts to all the cluster VMs.
@@ -117,10 +123,10 @@ artifacts/pip-packages.tar.gz
 Success looks like:
 ```
 PLAY RECAP *********************************************************************
-10.114.148.12 : ok=20  changed=1  unreachable=0  failed=0  skipped=5  rescued=0  ignored=0   
-10.114.148.17 : ok=20  changed=1  unreachable=0  failed=0  skipped=5  rescued=0  ignored=0   
-10.114.148.22 : ok=20  changed=1  unreachable=0  failed=0  skipped=5  rescued=0  ignored=0   
-10.114.148.25 : ok=20  changed=1  unreachable=0  failed=0  skipped=5  rescued=0  ignored=0   
-10.114.148.29 : ok=20  changed=1  unreachable=0  failed=0  skipped=5  rescued=0  ignored=0   
-10.114.148.55 : ok=20  changed=1  unreachable=0  failed=0  skipped=5  rescued=0  ignored=0   
+172.31.22.222 : ok=24 changed=14 unreachable=0 failed=0 skipped=1 rescued=0 ignored=0   
+172.31.22.74  : ok=24 changed=14 unreachable=0 failed=0 skipped=1 rescued=0 ignored=0   
+172.31.26.96  : ok=24 changed=14 unreachable=0 failed=0 skipped=1 rescued=0 ignored=0   
+172.31.28.104 : ok=24 changed=14 unreachable=0 failed=0 skipped=1 rescued=0 ignored=0   
+172.31.30.206 : ok=24 changed=14 unreachable=0 failed=0 skipped=1 rescued=0 ignored=0   
+172.31.31.56  : ok=24 changed=14 unreachable=0 failed=0 skipped=1 rescued=0 ignored=0   
 ```

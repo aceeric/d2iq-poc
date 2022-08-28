@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# Displays instance status for all d2iq VMs. It can take a bit for a VM to reach the
+# status "2/2 checks passed". This script displays the status for all the VMs, which
+# should progress through "initializing" to "ok". When all the statuses are "ok" then
+# all the VMs are ready.
+#
+
+lines=()
+
+(
+  echo -e "INSTANCE_ID STATUS"
+  (
+    while read instance_id; do
+      status=$(aws ec2 describe-instance-status --instance-ids $instance_id --query 'InstanceStatuses[*].[InstanceStatus.Status]' --output text)
+      echo "$instance_id $status"
+    done < <(aws ec2 describe-instances --filters "Name=tag:Name,Values=d2iq*" --query "Reservations[*].Instances[*].InstanceId" --output text)
+  ) | sort
+) | column -t

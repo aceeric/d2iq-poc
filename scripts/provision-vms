@@ -1,30 +1,32 @@
 #!/usr/bin/env bash
 #
-# Creates all the VMs for the POC. All VMs get internal IP addresses, but only bootstrap
-# and control plane 1 will get public IPs. Note - the instance settings make sense for
-# my account - of course you will have to tweak them. Note that CentOS-7-2111-20220330_2.x86_64
-# is an Amazon image that requires you to subscribe it and accept the EULA in the management
-# console.
+# Creates all the VMs for the POC. All VMs get public IPs because that's a simple way to
+# automatically enable outbound traffic for yum functionality. Note - the instance settings
+# make sense for my account - of course you will have to tweak them. Note that
+# CentOS-7-2111-2022*x86_64 is an Amazon image that requires you to subscribe it and
+# accept the EULA in the management console. Per:
 #
-# Consider running provision-ec2-instancez first with the --dry-run arg.
+# https://aws.amazon.com/marketplace/server/procurement?productId=d9a3032a-921c-4c6d-b150-bde168105e42
+#
+# Consider running 'provision-ec2-instancez' first by hand with the --dry-run arg to validate
+# AWS values.
 #
 
-TODO TODO TODO TODO TODO  CHANGE TO LARGE 200
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+instance_type=t2.xlarge
+storage=200
 
 for vmname in d2iq-bootstrap d2iq-cp1 d2iq-cp2 d2iq-cp3 d2iq-w1 d2iq-w2 d2iq-w3; do
-  public_ip='n'
-  if [[ $vmname == "d2iq-bootstrap" ]] || [[ $vmname == "d2iq-cp1" ]]; then
-    public_ip='y'
-  fi
-  ./scripts/provision-ec2-instancez\
-    --vol-size 20 \
-    --public-ip $public_ip \
+  $script_dir/provision-ec2-instancez\
+    --vol-size $storage \
+    --public-ip y \
     --nowait \
     $(pwd)/d2iq \
-    vpc-c44a96a1 \
-    us-east-1c \
+    vpc-0aab67dd3a3216872 \
+    us-east-1a \
     default \
-    CentOS-7-2111-20220330_2.x86_64 \
-    t2.micro \
+    'CentOS-7-2111-2022*x86_64' \
+    $instance_type \
     $vmname || break
 done

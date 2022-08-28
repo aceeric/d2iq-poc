@@ -4,7 +4,7 @@
 
 ## Install Docker
 
-On complettion, the snippet below will log you out of the bootstrap VM in order that the docker permissions can take effect. So after this step, log back in to the bootstrap VM:
+On completion, the snippet below will log you out of the bootstrap VM in order that the docker permissions can take effect. So after this step, log back in to the bootstrap VM:
 ```
 sudo yum install -y yum-utils
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
@@ -16,10 +16,18 @@ sudo usermod -aG docker $USER
 sudo shutdown now -r
 ```
 
+> **LOG BACK INTO THE BOOTSTRAP VM NOW**
+
+## Confirm Docker
+```
+docker info
+```
+
 ## Kubectl
 ```
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+kubectl version --client
 ```
 
 ## Helm 3
@@ -27,9 +35,12 @@ sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 curl -sL https://get.helm.sh/helm-v3.9.2-linux-386.tar.gz -o /tmp/helm-v3.9.2-linux-386.tar.gz
 tar -zxvf /tmp/helm-v3.9.2-linux-386.tar.gz -C /tmp
 sudo mv /tmp/linux-386/helm /usr/sbin/helm && rm -rf /tmp/helm-v3.9.2-linux-386.tar.gz /tmp/linux-386
+helm version
 ```
 
 ## Private Docker Registry
+
+The private registry will be secured by a self-signed cert.
 
 ### Set directory context
 ```
