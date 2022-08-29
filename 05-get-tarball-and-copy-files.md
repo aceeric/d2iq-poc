@@ -14,6 +14,15 @@ tar -zxvf dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz &&\
   rm -f dkp_airgapped_bundle_v2.2.2_linux_amd64.tar.gz
 ```
 
+## ADDED MONDAY 29-AUG
+
+An additional gz is needed per D2IQ in the `kib` directory. (Location is important here.)
+```
+curl -fL\
+  https://packages.d2iq.com/dkp/containerd/containerd-1.4.13-d2iq.1-centos-7.9-x86_64.tar.gz\
+  -o /var/d2iq/dkp-v2.2.2/kib/containerd-1.4.13-d2iq.1-centos-7.9-x86_64.tar.gz
+```
+
 ## Load the Konvoy bootstrap image
 
 ```
@@ -94,11 +103,12 @@ cp ../artifacts/pip-packages.tar.gz ./artifacts
 
 ### Verify
 ```
-$ find artifacts -type f | sort
+$ find containerd* artifacts -type f | sort
 artifacts/1.22.8_centos_7_x86_64.tar.gz
 artifacts/images/1.22.8_images_fips.tar.gz
 artifacts/images/1.22.8_images.tar.gz
 artifacts/pip-packages.tar.gz
+containerd-1.4.13-d2iq.1-centos-7.9-x86_64.tar.gz
 ```
 
 ### Upload
@@ -106,7 +116,8 @@ artifacts/pip-packages.tar.gz
 ./konvoy-image -v6 upload artifacts\
   --container-images-dir=./artifacts/images/\
   --os-packages-bundle=./artifacts/"$VERSION"_"$BUNDLE_OS".tar.gz\
-  --pip-packages-bundle=./artifacts/pip-packages.tar.gz
+  --pip-packages-bundle=./artifacts/pip-packages.tar.gz\
+  --containerd-bundle=./containerd-1.4.13-d2iq.1-centos-7.9-x86_64.tar.gz
 ```
 
 > **NOTE**: If the `konvoy-image` upload times out, you may need modify `/var/d2iq/dkp-v2.2.2/kib/ansible/roles/offline/tasks/upload.yaml` and add a `timeout` statement to the `upload containerd bundle to remote` task. E.g.:

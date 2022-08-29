@@ -6,6 +6,7 @@ Based on: https://archive-docs.d2iq.com/dkp/konvoy/2.2/choose-infrastructure/pre
 
 ## Environment vars
 ```
+export CLUSTER_NAME=d2iq-poc
 export CONTROL_PLANE_1_ADDRESS=$d2iq_cp1
 export CONTROL_PLANE_2_ADDRESS=$d2iq_cp2
 export CONTROL_PLANE_3_ADDRESS=$d2iq_cp3

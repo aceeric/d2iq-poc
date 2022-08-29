@@ -18,6 +18,8 @@ export DOCKER_REGISTRY_CA=~/pki/ca.pem
 
 ## Create the downstream cluster
 
+TODO TODO TODO GEN THE YAML FILE AND PATCH THE REPLICAS
+
 ```
 ./dkp create cluster preprovisioned\
   --cluster-name $CLUSTER_NAME\
@@ -55,4 +57,9 @@ Cluster/d2iq-poc                                             False  Warning   Sc
     ├─Machine/d2iq-poc-md-0-745878dd89-k5m8s                 False  Info      WaitingForControlPlaneAvailable  70s    0 of 2 completed                                             
     └─Machine/d2iq-poc-md-0-745878dd89-p7wt2                 False  Info      WaitingForControlPlaneAvailable  70s    0 of 2 completed                                             
 -bash-4.2$ 
+```
+
+## Delete the cluster
+```
+./dkp delete cluster --cluster-name $CLUSTER_NAME --delete-kubernetes-resources=false
 ```
