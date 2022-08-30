@@ -24,6 +24,8 @@ TODO TODO TODO GEN THE YAML FILE AND PATCH THE REPLICAS
 ./dkp create cluster preprovisioned\
   --cluster-name $CLUSTER_NAME\
   --control-plane-endpoint-host $d2iq_cp1_dns_name\
+  --control-plane-replicas 3\
+  --worker-replicas 3\
   --override-secret-name $CLUSTER_NAME-user-overrides\
   --registry-mirror-url $DOCKER_REGISTRY_URL\
   --registry-mirror-cacert $DOCKER_REGISTRY_CA
