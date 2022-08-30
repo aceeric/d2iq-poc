@@ -6,7 +6,7 @@
 
 Public AWS:
 ```
-scp -o 'StrictHostKeyChecking no' -i d2iq scripts/configure-vm ${USER#*\\}@$d2iq_bootstrap_dns_name:.
+scp -o 'StrictHostKeyChecking no' -i d2iq scripts/configure-vm ${USER#*\\}@$d2iq_bootstrap_public_dns_name:.
 ```
 
 eVo:
@@ -19,7 +19,7 @@ scp -i d2iq scripts/configure-vm ${USER#*\\}@$d2iq_bootstrap:.
 
 Public AWS:
 ```
-ssh -i d2iq ${USER#*\\}@$d2iq_bootstrap_dns_name
+ssh -i d2iq ${USER#*\\}@$d2iq_bootstrap_public_dns_name
 ```
 
 eVo:
@@ -44,20 +44,27 @@ EOF
 > Use the values generated earlier:
 ```
 cat <<EOF > ~/.bashrc
-export d2iq_bootstrap=172.31.16.26
-export d2iq_bootstrap_dns_name=ec2-54-88-252-180.compute-1.amazonaws.com
-export d2iq_cp1=172.31.26.96
-export d2iq_cp1_dns_name=ec2-54-157-10-215.compute-1.amazonaws.com
-export d2iq_cp2=172.31.30.206
-export d2iq_cp2_dns_name=ec2-54-89-227-109.compute-1.amazonaws.com
-export d2iq_cp3=172.31.28.104
-export d2iq_cp3_dns_name=ec2-34-228-255-38.compute-1.amazonaws.com
-export d2iq_w1=172.31.22.74
-export d2iq_w1_dns_name=ec2-54-226-73-176.compute-1.amazonaws.com
-export d2iq_w2=172.31.22.222
-export d2iq_w2_dns_name=ec2-54-87-102-18.compute-1.amazonaws.com
-export d2iq_w3=172.31.31.56
-export d2iq_w3_dns_name=ec2-52-205-249-6.compute-1.amazonaws.com
+export d2iq_bootstrap=172.31.18.41
+export d2iq_bootstrap_private_dns_name=ip-172-31-18-41.ec2.internal
+export d2iq_bootstrap_public_dns_name=ec2-54-221-185-20.compute-1.amazonaws.com
+export d2iq_cp1=172.31.16.12
+export d2iq_cp1_private_dns_name=ip-172-31-16-12.ec2.internal
+export d2iq_cp1_public_dns_name=ec2-54-91-10-94.compute-1.amazonaws.com
+export d2iq_cp2=172.31.16.51
+export d2iq_cp2_private_dns_name=ip-172-31-16-51.ec2.internal
+export d2iq_cp2_public_dns_name=ec2-54-83-92-172.compute-1.amazonaws.com
+export d2iq_cp3=172.31.24.21
+export d2iq_cp3_private_dns_name=ip-172-31-24-21.ec2.internal
+export d2iq_cp3_public_dns_name=ec2-54-221-81-108.compute-1.amazonaws.com
+export d2iq_w1=172.31.23.222
+export d2iq_w1_private_dns_name=ip-172-31-23-222.ec2.internal
+export d2iq_w1_public_dns_name=ec2-54-91-101-122.compute-1.amazonaws.com
+export d2iq_w2=172.31.28.98
+export d2iq_w2_private_dns_name=ip-172-31-28-98.ec2.internal
+export d2iq_w2_public_dns_name=ec2-54-226-101-241.compute-1.amazonaws.com
+export d2iq_w3=172.31.29.80
+export d2iq_w3_private_dns_name=ip-172-31-29-80.ec2.internal
+export d2iq_w3_public_dns_name=ec2-54-90-155-110.compute-1.amazonaws.com
 EOF
 
 source ~/.bashrc

@@ -18,7 +18,5 @@ kubectl label secret ${SSH_PRIVATE_KEY_SECRET_NAME} clusterctl.cluster.x-k8s.io/
 ```
 
 ## Overrides
-```
-kubectl create secret generic $CLUSTER_NAME-user-overrides --from-file=overrides.yaml=./kib/overrides/offline.yaml
-kubectl label secret $CLUSTER_NAME-user-overrides clusterctl.cluster.x-k8s.io/move=
-```
+
+No overrides are required for this air-gapped install.

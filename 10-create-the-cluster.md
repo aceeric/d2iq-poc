@@ -18,15 +18,13 @@ export DOCKER_REGISTRY_CA=~/pki/ca.pem
 
 ## Create the downstream cluster
 
-TODO TODO TODO GEN THE YAML FILE AND PATCH THE REPLICAS
-
+Specify the internal IP of control plane VM 1 for the control plane end point: `$d2iq_cp1`. No override secret is specified:
 ```
 ./dkp create cluster preprovisioned\
   --cluster-name $CLUSTER_NAME\
-  --control-plane-endpoint-host $d2iq_cp1_dns_name\
+  --control-plane-endpoint-host $d2iq_cp1\
   --control-plane-replicas 3\
   --worker-replicas 3\
-  --override-secret-name $CLUSTER_NAME-user-overrides\
   --registry-mirror-url $DOCKER_REGISTRY_URL\
   --registry-mirror-cacert $DOCKER_REGISTRY_CA
 ```
@@ -39,6 +37,14 @@ watch ./dkp describe cluster --cluster-name $CLUSTER_NAME
 And:
 ```
 kubectl -n cappp-system logs deploy/cappp-controller-manager --timestamps -f
+```
+
+## Success
+```
+kubectl wait --for=condition=ControlPlaneReady "clusters/${CLUSTER_NAME}" --timeout=30m
+
+./dkp get kubeconfig -c ${CLUSTER_NAME} > ~/.kube/${CLUSTER_NAME}.conf
+export KUBECONFIG=~/.kube/${CLUSTER_NAME}.conf
 ```
 
 ## Failure

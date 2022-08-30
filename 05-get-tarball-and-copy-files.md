@@ -102,6 +102,8 @@ cp ../artifacts/pip-packages.tar.gz ./artifacts
 ```
 
 ### Verify
+These path locations are important to match as shown:
+
 ```
 $ find containerd* artifacts -type f | sort
 artifacts/1.22.8_centos_7_x86_64.tar.gz

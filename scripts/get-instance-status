@@ -14,6 +14,6 @@ lines=()
     while read instance_id; do
       status=$(aws ec2 describe-instance-status --instance-ids $instance_id --query 'InstanceStatuses[*].[InstanceStatus.Status]' --output text)
       echo "$instance_id $status"
-    done < <(aws ec2 describe-instances --filters "Name=tag:Name,Values=d2iq*" --query "Reservations[*].Instances[*].InstanceId" --output text)
+    done < <(aws ec2 describe-instances --filters "Name=tag:Name,Values=d2iq*" --query 'Reservations[*].Instances[?!contains(State.Name, '"'terminated'"')].InstanceId' --output text)
   ) | sort
 ) | column -t
