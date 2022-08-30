@@ -9,9 +9,11 @@ while read line; do
   line=($line);
   vmname=${line[0]};
   ip=${line[1]};
-  dns_name=${line[2]};
+  private_dns_name=${line[2]};
+  public_dns_name=${line[3]};
   echo "export ${vmname/-/_}=$ip";
-  [[ ! -z "$dns_name" ]] && echo "export ${vmname/-/_}_dns_name=$dns_name";
+  echo "export ${vmname/-/_}_private_dns_name=$ip";
+  [[ ! -z "$dns_name" ]] && echo "export ${vmname/-/_}_public_dns_name=$dns_name";
 done < <(aws ec2 describe-instances --filters "Name=tag:Name,Values=d2iq*"\
-  --query "Reservations[*].Instances[?!contains(State.Name, '"'terminated'"')].[Tags[?Key=='Name']| [0].Value,PrivateIpAddress,PublicDnsName]"\
+  --query "Reservations[*].Instances[?!contains(State.Name, '"'terminated'"')].[Tags[?Key=='Name']| [0].Value,PrivateIpAddress,PrivateDnsName,PublicDnsName]"\
   --output text | sort)
