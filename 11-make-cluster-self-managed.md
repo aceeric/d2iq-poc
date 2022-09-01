@@ -1,4 +1,4 @@
-# Create the cluster
+# Make cluster self-managed
 
 Per: https://archive-docs.d2iq.com/dkp/konvoy/2.2/choose-infrastructure/pre-provisioned/create-cluster/
 
