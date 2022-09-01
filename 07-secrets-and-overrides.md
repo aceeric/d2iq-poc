@@ -13,8 +13,8 @@ export CLUSTER_NAME=d2iq-poc
 ```
 export SSH_PRIVATE_KEY_FILE=~/.ssh/d2iq
 export SSH_PRIVATE_KEY_SECRET_NAME=$CLUSTER_NAME-ssh-key
-kubectl create secret generic ${SSH_PRIVATE_KEY_SECRET_NAME} --from-file=ssh-privatekey=${SSH_PRIVATE_KEY_FILE}
-kubectl label secret ${SSH_PRIVATE_KEY_SECRET_NAME} clusterctl.cluster.x-k8s.io/move=
+kubectl create secret generic $SSH_PRIVATE_KEY_SECRET_NAME --from-file=ssh-privatekey=$SSH_PRIVATE_KEY_FILE
+kubectl label secret $SSH_PRIVATE_KEY_SECRET_NAME clusterctl.cluster.x-k8s.io/move=
 ```
 
 ## Overrides

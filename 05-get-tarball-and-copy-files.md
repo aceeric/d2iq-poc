@@ -44,7 +44,7 @@ curl -s https://$(hostname):5000/v2/_catalog\
 
 ## Copy artifacts to hosts
 
-This uses the `d2iq-konvoy` utility to copy artifacts to all the cluster VMs.
+This uses the D2IQ `konvoy-image` utility to copy artifacts to all the cluster VMs.
 
 ### Set env vars
 ```

@@ -18,7 +18,7 @@ export DOCKER_REGISTRY_CA=~/pki/ca.pem
 
 ## Create the downstream cluster
 
-Specify the internal IP of control plane VM 1 for the control plane end point: `$d2iq_cp1`. No override secret is specified:
+Specify the internal IP of control plane VM 1 for the control plane end point: `$d2iq_cp1`. No override secret is specified. Note - the timeout below is notional for an extremely slow environment:
 ```
 ./dkp create cluster preprovisioned\
   --cluster-name $CLUSTER_NAME\
@@ -26,48 +26,118 @@ Specify the internal IP of control plane VM 1 for the control plane end point: `
   --control-plane-replicas 3\
   --worker-replicas 3\
   --registry-mirror-url $DOCKER_REGISTRY_URL\
-  --registry-mirror-cacert $DOCKER_REGISTRY_CA
+  --registry-mirror-cacert $DOCKER_REGISTRY_CA\
+  --timeout=60m
 ```
 
 ## Monitor
 ```
-watch ./dkp describe cluster --cluster-name $CLUSTER_NAME
+kubectl -n cappp-system logs deploy/cappp-controller-manager --timestamps -f
 ```
 
 And:
 ```
-kubectl -n cappp-system logs deploy/cappp-controller-manager --timestamps -f
+watch ./dkp describe cluster --cluster-name $CLUSTER_NAME
 ```
 
-## Success
+## Wait for completion
 ```
-kubectl wait --for=condition=ControlPlaneReady "clusters/${CLUSTER_NAME}" --timeout=30m
-
-./dkp get kubeconfig -c ${CLUSTER_NAME} > ~/.kube/${CLUSTER_NAME}.conf
-export KUBECONFIG=~/.kube/${CLUSTER_NAME}.conf
+kubectl wait --for=condition=ControlPlaneReady clusters/$CLUSTER_NAME --timeout=30m
 ```
 
-## Failure
+Success result:
+```
+cluster.cluster.x-k8s.io/d2iq-poc condition met
+```
 
-Observe `KIBFailed`. The process never progresses past here.
+## Success looks like:
+```
+./dkp describe cluster --cluster-name $CLUSTER_NAME
+```
+
+Output:
+```
+NAME                                                         READY  SEVERITY  REASON  SINCE  MESSAGE
+Cluster/d2iq-poc                                             True                     40s
+├─ClusterInfrastructure - PreprovisionedCluster/d2iq-poc
+├─ControlPlane - KubeadmControlPlane/d2iq-poc-control-plane  True                     40s
+│ ├─Machine/d2iq-poc-control-plane-fkq6l                     True                     38m
+│ ├─Machine/d2iq-poc-control-plane-lfvlx                     True                     20m
+│ └─Machine/d2iq-poc-control-plane-t9jvp                     True                     41s
+└─Workers
+  └─MachineDeployment/d2iq-poc-md-0                          True                     16m
+    ├─Machine/d2iq-poc-md-0-745878dd89-5c9w4                 True                     6m44s
+    ├─Machine/d2iq-poc-md-0-745878dd89-6dxcw                 True                     17m
+    └─Machine/d2iq-poc-md-0-745878dd89-sgvdk                 True                     18m
+```
+
+## Get the new cluster kubeconfig
 
 ```
-$ ./dkp describe cluster --cluster-name $CLUSTER_NAME
-NAME                                                         READY  SEVERITY  REASON                           SINCE  MESSAGE                                                      
-Cluster/d2iq-poc                                             False  Warning   ScalingUp                        64s    Scaling up control plane to 3 replicas (actual 1)            
-├─ClusterInfrastructure - PreprovisionedCluster/d2iq-poc                                                                                                                           
-├─ControlPlane - KubeadmControlPlane/d2iq-poc-control-plane  False  Warning   ScalingUp                        64s    Scaling up control plane to 3 replicas (actual 1)            
-│ └─Machine/d2iq-poc-control-plane-khvw2                     False  Warning   KIBFailed                        39s    1 of 2 completed                                             
-└─Workers                                                                                                                                                                          
-  └─MachineDeployment/d2iq-poc-md-0                          False  Warning   WaitingForAvailableMachines      70s    Minimum availability requires 3 replicas, current 0 available
-    ├─Machine/d2iq-poc-md-0-745878dd89-4n8ln                 False  Info      WaitingForControlPlaneAvailable  70s    0 of 2 completed                                             
-    ├─Machine/d2iq-poc-md-0-745878dd89-dtnhl                 False  Info      WaitingForControlPlaneAvailable  70s    0 of 2 completed                                             
-    ├─Machine/d2iq-poc-md-0-745878dd89-k5m8s                 False  Info      WaitingForControlPlaneAvailable  70s    0 of 2 completed                                             
-    └─Machine/d2iq-poc-md-0-745878dd89-p7wt2                 False  Info      WaitingForControlPlaneAvailable  70s    0 of 2 completed                                             
--bash-4.2$ 
+./dkp get kubeconfig -c $CLUSTER_NAME > ~/.kube/$CLUSTER_NAME.conf
+```
+
+## List pods in the new cluster
+```
+kubectl --kubeconfig ~/.kube/$CLUSTER_NAME.conf get po -A
+```
+
+Result:
+```
+NAMESPACE                NAME                                                    READY   STATUS
+calico-system            calico-kube-controllers-57fbd7bd59-vncmx                1/1     Running
+calico-system            calico-node-4dbdt                                       1/1     Running
+calico-system            calico-node-6lcbc                                       1/1     Running
+calico-system            calico-node-6m4fg                                       1/1     Running
+calico-system            calico-node-mr54t                                       1/1     Running
+calico-system            calico-node-svwgj                                       1/1     Running
+calico-system            calico-node-zs5gm                                       1/1     Running
+calico-system            calico-typha-dd666cf88-6xdzk                            1/1     Running
+calico-system            calico-typha-dd666cf88-jxkr5                            1/1     Running
+calico-system            calico-typha-dd666cf88-wfl7q                            1/1     Running
+kube-system              coredns-78fcd69978-2hn8r                                1/1     Running
+kube-system              coredns-78fcd69978-kfjwv                                1/1     Running
+kube-system              etcd-ip-10-114-148-19.evoforge.org                      1/1     Running
+kube-system              etcd-ip-10-114-148-22.evoforge.org                      1/1     Running
+kube-system              etcd-ip-10-114-148-44.evoforge.org                      1/1     Running
+kube-system              kube-apiserver-ip-10-114-148-19.evoforge.org            1/1     Running
+kube-system              kube-apiserver-ip-10-114-148-22.evoforge.org            1/1     Running
+kube-system              kube-apiserver-ip-10-114-148-44.evoforge.org            1/1     Running
+kube-system              kube-controller-manager-ip-10-114-148-19.evoforge.org   1/1     Running
+kube-system              kube-controller-manager-ip-10-114-148-22.evoforge.org   1/1     Running
+kube-system              kube-controller-manager-ip-10-114-148-44.evoforge.org   1/1     Running
+kube-system              kube-proxy-bj2bs                                        1/1     Running
+kube-system              kube-proxy-g7gkx                                        1/1     Running
+kube-system              kube-proxy-j6dzh                                        1/1     Running
+kube-system              kube-proxy-lkx7h                                        1/1     Running
+kube-system              kube-proxy-tkg5m                                        1/1     Running
+kube-system              kube-proxy-xdh2q                                        1/1     Running
+kube-system              kube-scheduler-ip-10-114-148-19.evoforge.org            1/1     Running
+kube-system              kube-scheduler-ip-10-114-148-22.evoforge.org            1/1     Running
+kube-system              kube-scheduler-ip-10-114-148-44.evoforge.org            1/1     Running
+kube-system              local-volume-provisioner-4r5d7                          1/1     Running
+kube-system              local-volume-provisioner-bmglp                          1/1     Running
+kube-system              local-volume-provisioner-dkbr6                          1/1     Running
+kube-system              local-volume-provisioner-jc4bj                          1/1     Running
+kube-system              local-volume-provisioner-p22zk                          1/1     Running
+kube-system              local-volume-provisioner-q2tff                          1/1     Running
+metallb-system           controller-567fb5f8dd-txdns                             1/1     Running
+metallb-system           speaker-58f5t                                           1/1     Running
+metallb-system           speaker-7qlcg                                           1/1     Running
+metallb-system           speaker-kqmx2                                           1/1     Running
+metallb-system           speaker-lpl2v                                           1/1     Running
+metallb-system           speaker-nsn8j                                           1/1     Running
+metallb-system           speaker-xfjhn                                           1/1     Running
+node-feature-discovery   node-feature-discovery-master-84c67dcbb6-dx2dq          1/1     Running
+node-feature-discovery   node-feature-discovery-worker-l62mw                     1/1     Running
+node-feature-discovery   node-feature-discovery-worker-n595l                     1/1     Running
+node-feature-discovery   node-feature-discovery-worker-njbpm                     1/1     Running
+tigera-operator          tigera-operator-d499f5c8f-jmjw2                         1/1     Running
 ```
 
 ## Delete the cluster
+
+At some future point you can delete the downstream cluster from the bootstrap cluster. This variant does not actually remove the downstream cluster - the the resources from the bootstrap cluster.
 ```
 ./dkp delete cluster --cluster-name $CLUSTER_NAME --delete-kubernetes-resources=false
 ```
