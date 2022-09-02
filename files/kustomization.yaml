@@ -1,0 +1,63 @@
+resources:
+- kommander-install.yaml
+
+#
+# Notes:
+# The dkp catalog patch is per:
+#   https://docs.d2iq.com/dkp/2.3/configure-an-enterprise-catalog#id-(v2.4)ConfigureanEnterprisecatalog-Air-gappedCatalogConfiguration
+# The insights catalog patch is per:
+#   https://archive-docs.d2iq.com/dkp/kommander/2.2/install/air-gapped/catalog/#install-kommander-3
+# The remaining patches are to skinny the footprint down for a smaller cluster
+#
+
+patchesStrategicMerge:
+- |-
+  apiVersion: config.kommander.mesosphere.io/v1alpha1
+  kind: Installation
+  metadata:
+    name: d2iq-poc
+  catalog:
+    repositories:
+    - name: insights-catalog-applications
+      labels:
+        kommander.d2iq.io/workspace-default-catalog-repository: "true"
+        kommander.d2iq.io/gitapps-gitrepository-type: "dkp"
+      path: ./dkp-insights-v2.2.2.tar.gz
+    - name: dkp-catalog-applications
+      labels:
+        kommander.d2iq.io/project-default-catalog-repository: "true"
+        kommander.d2iq.io/workspace-default-catalog-repository: "true"
+        kommander.d2iq.io/gitapps-gitrepository-type: "dkp"
+      path: ./dkp-catalog-applications-v2.2.2.tar.gz
+- |-
+  apiVersion: config.kommander.mesosphere.io/v1alpha1
+  kind: Installation
+  metadata:
+    name: d2iq-poc
+  apps:
+    dex:
+      enabled: false
+    dex-k8s-authenticator:
+      enabled: false
+    fluent-bit:
+      enabled: false
+    gatekeeper:
+      enabled: false
+    gitea:
+      enabled: false
+    grafana-logging:
+      enabled: false
+    grafana-loki:
+      enabled: false
+    kubetunnel:
+      enabled: false
+    logging-operator:
+      enabled: false
+    minio-operator:
+      enabled: false
+    traefik:
+      enabled: true
+    traefik-forward-auth-mgmt:
+      enabled: true
+    velero:
+      enabled: false

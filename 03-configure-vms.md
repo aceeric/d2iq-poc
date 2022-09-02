@@ -94,11 +94,14 @@ total 4
 -bash-4.2$ 
 ```
 
-Configure directories for the storage provisioner on the workers. The preflight docs call for 55 GB X 8 drives and mounts. For now, just simulate that with directories.
+Configure worker storage for the `local-volume-provisioner.yaml:`. The preflight docs call for 55 GB X 8 drives and mounts. For now, just simulate that with directories.
 
 ```
 for vmip in $d2iq_w1 $d2iq_w2 $d2iq_w3; do\
   ssh -t -i ~/.ssh/d2iq $USER@$vmip 'for i in 0 1 2 3; do sudo mkdir -p /var/data/volume-$i; done';\
+  ssh -t -i ~/.ssh/d2iq $USER@$vmip 'for i in 0 1 2 3; do sudo mkdir -p /mnt/disks/volume-$i; done';\
+  ssh -t -i ~/.ssh/d2iq $USER@$vmip 'for i in 0 1 2 3; do sudo mount --bind /var/data/volume-$i /mnt/disks/volume-$i; done';\
+  ssh -t -i ~/.ssh/d2iq $USER@$vmip 'for i in 0 1 2 3; do echo "/var/data/volume-$i /mnt/disks/volume-$i none defaults,bind,nosuid,nodev,noexec 0 0" | sudo tee -a /etc/fstab; done';\
 done
 ```
 
