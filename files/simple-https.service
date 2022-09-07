@@ -1,0 +1,12 @@
+[Unit]
+Description=Simple HTTPS
+After=default.target
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStart=/usr/bin/python3 /tmp/simple-https.py
+TimeoutStartSec=0
+
+[Install]
+WantedBy=default.target

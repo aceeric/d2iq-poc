@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+#
+# Based on: https://docs.aws.amazon.com/elasticloadbalancing/latest/network/network-load-balancer-cli.html
+#
+# Creates (or deletes) a NLB and listeners for 443 and 80 against all Instances whose name matches the
+# wildcard in arg 2.
+#
+# Positional params
+#   $1 - Variant: "EVO" for eVo, or anything else is Commercial AWS. (Commercial AWS variant
+#        is not implemented yet.)
+#   $2 - Instance name wildcard. Only evaluated when creating the NLB.
+#   $1 - Operation (optional): if "CLEANUP" then existing ALB is deleted. If "VERIFY", then
+#        LB health check is deployed. Otherwise ignored - treated as CREATE.
+# 
+# Example:
+#   scripts/create-nlb EVO myvmname-
+#
+#   Would create a LB for myvmname-1, myvmname-2, myvmname-3, etc.
+#
+
+set -e
+
+# inputs
+
+export VARIANT=$1
+export INSTANCE_NAME_FILTER=$2*
+export ACTION=$3
+
+echo "VARIANT=$VARIANT"
+echo "INSTANCE_NAME_FILTER=$INSTANCE_NAME_FILTER"
+echo "ACTION=$ACTION"
+
+# script vars
+
+export VPC_ID=
+export SUBNET_AZ=
+export SUBNET_ID=
+export TARGET_GROUP_INSTANCE_IDS=
+export LOADBALANCER_ARN=
+export TARGET_GROUP_ARNS=
+
+if [[ "$ACTION" == CLEANUP ]]; then
+  LOADBALANCER_ARN=$(aws elbv2 describe-load-balancers --names d2iq-poc\
+                       --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+
+  TARGET_GROUP_ARNS=$(aws elbv2 describe-target-groups --load-balancer-arn $LOADBALANCER_ARN\
+                      --query 'TargetGroups[*].TargetGroupArn' --output text)
+
+  echo "remove load balancer $LOADBALANCER_ARN"
+  aws elbv2 delete-load-balancer --load-balancer-arn $LOADBALANCER_ARN
+
+  for TARGET_GROUP_ARN in $TARGET_GROUP_ARNS; do
+    echo "remove target group $TARGET_GROUP_ARN"
+    aws elbv2 delete-target-group --target-group-arn $TARGET_GROUP_ARN
+  done
+
+  exit 0
+elif [[ "$ACTION" == VERIFY ]]; then
+  for PORT in 443 80; do
+    TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups --names d2iq-poc-$PORT --query 'TargetGroups[*].TargetGroupArn' --output text)
+    echo "PORT: $PORT // TARGET-GROUP: $TARGET_GROUP_ARN"
+    aws elbv2 describe-target-health\
+      --target-group-arn $TARGET_GROUP_ARN\
+      --query 'TargetHealthDescriptions[*].[Target.Id,TargetHealth.State]' --output text
+  done
+  exit 0
+fi
+
+if aws elbv2 describe-load-balancers --names d2iq-poc &>/dev/null; then
+  echo "Load balancer d2iq-poc already exists - nothing to do"
+fi
+
+# set script vars based on variant
+
+if [[ $VARIANT == EVO ]]; then 
+  export VPC_ID=vpc-032dd6de4b91e7327
+  export SUBNET_AZ=us-east-1a
+else
+  echo "TODO commercial AWS"
+  exit 1
+fi
+
+# do lookups
+
+echo "looking up subnet ID"
+
+SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=$SUBNET_AZ"\
+            --query 'Subnets[0].SubnetId' --output text)
+
+echo "looking up instance IDs"
+
+while read line; do
+  TARGET_GROUP_INSTANCE_IDS="$TARGET_GROUP_INSTANCE_IDS Id=$line"
+done < <(aws ec2 describe-instances\
+           --filters "Name=tag:Name,Values=$INSTANCE_NAME_FILTER"\
+           --query 'Reservations[*].Instances[?!contains(State.Name, '"'terminated'"')].InstanceId'\
+           --output text)
+TARGET_GROUP_INSTANCE_IDS=$(echo $TARGET_GROUP_INSTANCE_IDS | awk '{$1=$1};1')
+
+echo "SUBNET_ID                 = $SUBNET_ID"
+echo "TARGET_GROUP_INSTANCE_IDS = $TARGET_GROUP_INSTANCE_IDS"
+
+# Create IPv4 load balancer
+
+echo "Create load balancer"
+
+aws elbv2 create-load-balancer --name d2iq-poc --type network --scheme internal --subnets $SUBNET_ID
+
+echo "Looking up load balancer ARN"
+
+export LOADBALANCER_ARN=$(aws elbv2 describe-load-balancers --names d2iq-poc\
+                            --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+
+echo "LOADBALANCER_ARN=$LOADBALANCER_ARN"
+
+# Create target groups (default type is 'instance')
+
+echo "Create target groups"
+
+aws elbv2 create-target-group --name d2iq-poc-443 --protocol TCP --port 443 --vpc-id $VPC_ID
+aws elbv2 create-target-group --name d2iq-poc-80 --protocol TCP --port 80 --vpc-id $VPC_ID
+
+echo "looking up target group ARNs"
+
+# CLI will return all on one line
+TARGET_GROUP_ARNS=$(aws elbv2 describe-target-groups --names d2iq-poc-443 d2iq-poc-80\
+                      --query 'TargetGroups[*].TargetGroupArn' --output text)
+
+echo "TARGET_GROUP_ARNS=$TARGET_GROUP_ARNS"
+
+# Register targets with target groups
+
+echo "Registering targets"
+
+for TARGET_GROUP_ARN in $TARGET_GROUP_ARNS; do
+  aws elbv2 register-targets --target-group-arn $TARGET_GROUP_ARN --targets $TARGET_GROUP_INSTANCE_IDS
+done
+
+# Create listeners
+
+echo "Creating listeners"
+
+for PORT in 443 80; do
+  TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups --names d2iq-poc-$PORT --query 'TargetGroups[*].TargetGroupArn' --output text)
+  aws elbv2 create-listener\
+    --load-balancer-arn $LOADBALANCER_ARN\
+    --protocol TCP\
+    --port $PORT  \
+    --default-actions Type=forward,TargetGroupArn=$TARGET_GROUP_ARN
+done
