@@ -4,6 +4,38 @@ Per: https://archive-docs.d2iq.com/dkp/kommander/2.2/install/air-gapped/
 
 **Context: Bootstrap VM**
 
+
+
+TESTING 
+```
+cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - $d2iq_w1/32
+EOF
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Directory context
 ```
 cd /var/d2iq/dkp-v2.2.2
@@ -92,20 +124,243 @@ This step uses kustomize to patch the kommander manifest. Before writing the pat
 kubectl kustomize ~/kommander | sed -e '/metadata:/,+2d' >| ~/kommander/kommander-install-patched.yaml
 ```
 
-## TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+## TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 
-Hand-patched the manifest:
+> JUST USE THIS KUSTOMIZE FOR NOW
 ```
-  traefik:
+cat <<EOF >| ~/kommander/kommander-install-patched.yaml
+ageEncryptionSecretName: sops-age
+airgapped:
+  enabled: true
+apiVersion: config.kommander.mesosphere.io/v1alpha1
+apps:
+  dex:
+    enabled: true
+  dex-k8s-authenticator:
+    enabled: true
+  dkp-insights-management:
+    enabled: true
+  fluent-bit:
+    enabled: false
+  gatekeeper:
+    enabled: false
+  gitea:
+    enabled: true
+  grafana-logging:
+    enabled: false
+  grafana-loki:
+    enabled: false
+  kommander:
+    enabled: true
+  kube-prometheus-stack:
     enabled: true
     values: |
-      service:
-        annotations:
-          service.beta.kubernetes.io/aws-load-balancer-internal: "false" <<<<<<<< HAND JAM!!!!!!
+      prometheus:
+        additionalServiceMonitors:
+          - name: dkp-service-monitor-metrics-dex-controller
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "metrics"
+                kubeaddons.mesosphere.io/name: "dex-controller"
+            namespaceSelector:
+              any: true
+            endpoints:
+              - port: https
+                interval: 30s
+                scheme: https
+                bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+                tlsConfig:
+                  caFile: "/etc/prometheus/secrets/dex/ca.crt"
+                  certFile: "/etc/prometheus/secrets/dex/tls.crt"
+                  keyFile: "/etc/prometheus/secrets/dex/tls.key"
+                  insecureSkipVerify: true
+          - name: dkp-service-monitor-metrics-thanos
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "metrics"
+            namespaceSelector:
+              matchNames:
+                - kommander
+                - kubecost
+            endpoints:
+              # Service port for Thanos Querier, running in Kommander.
+              # If we ever add a Kommander-specific Prometheus, this
+              # endpoint should be removed and added to that Prometheus's
+              # configuration.
+              - targetPort: 10902
+                interval: 30s
+          - name: dkp-service-monitor-metrics-centralized-grafana
+            selector:
+              matchLabels:
+                app.kubernetes.io/instance: "centralized-grafana"
+                servicemonitor.kommander.mesosphere.io/path: "metrics"
+            namespaceSelector:
+              matchNames:
+                - kommander
+            endpoints:
+              - port: service
+                interval: 30s
+          - name: dkp-service-monitor-metrics-kommander
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "metrics"
+                kommander.mesosphere.io/name: "kommander"
+            namespaceSelector:
+              matchNames:
+                - kommander
+            endpoints:
+              - port: https
+                interval: 30s
+                scheme: https
+                bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+                tlsConfig:
+                  insecureSkipVerify: true
+          - name: dkp-service-monitor-karma
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "dkp__kommander__monitoring__karma__metrics"
+            namespaceSelector:
+              matchNames:
+                - kommander
+            endpoints:
+              - path: /dkp/kommander/monitoring/karma/metrics
+                targetPort: http
+                interval: 30s
+          # Below service monitors are copied from kube-prometheus-stack-d2iq-defaults
+          # This is because arrays in values are replaced, not appended.
+          - name: dkp-service-monitor-metrics
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "metrics"
+            namespaceSelector:
+              any: true
+            endpoints:
+              - port: metrics
+                interval: 30s
+              - port: monitoring
+                interval: 30s
+              # Service port for external-dns
+              - targetPort: 7979
+                interval: 30s
+          - name: dkp-service-monitor-metrics-http
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "metrics"
+                servicemonitor.kommander.mesosphere.io/port: "http"
+            namespaceSelector:
+              any: true
+            endpoints:
+              # Service ports for loki-distributed
+              - targetPort: http
+                interval: 30s
+          - name: dkp-service-monitor-api-v1-metrics-prometheus
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "api__v1__metrics__prometheus"
+            namespaceSelector:
+              any: true
+            endpoints:
+              - path: /api/v1/metrics/prometheus
+                port: metrics
+                interval: 30s
+          - name: dkp-service-monitor-api-v1-metrics-prometheus-http-10s
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "api__v1__metrics__prometheus"
+                servicemonitor.kommander.mesosphere.io/port: "http"
+                servicemonitor.kommander.mesosphere.io/interval: "10s"
+            namespaceSelector:
+              any: true
+            endpoints:
+              - path: /api/v1/metrics/prometheus
+                port: http
+                interval: 10s
+          - name: dkp-service-monitor-prometheus-metrics
+            selector:
+              matchLabels:
+                servicemonitor.kommander.mesosphere.io/path: "prometheus__metrics"
+            namespaceSelector:
+              any: true
+            endpoints:
+              - path: /_prometheus/metrics
+                targetPort: 5601
+                interval: 30s
+        prometheusSpec:
+          secrets:
+            - dex
+          storageSpec:
+            volumeClaimTemplate:
+              spec:
+                # 100Gi is the default size for the chart
+                resources:
+                  requests:
+                    storage: 100Gi
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 10922Mi
+            requests:
+              cpu: 1000m
+              memory: 4000Mi
+      grafana:
+        resources:
+          # keep request = limit to keep this container in guaranteed class
+          limits:
+            cpu: 300m
+            memory: 100Mi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+      alertmanager:
+        alertmanagerSpec:
+          resources:
+            limits:
+              cpu: 200m
+              memory: 250Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+  kubefed:
+    enabled: true
+  kubernetes-dashboard:
+    enabled: true
+  kubetunnel:
+    enabled: false
+  logging-operator:
+    enabled: false
+  minio-operator:
+    enabled: false
+  prometheus-adapter:
+    enabled: true
+  reloader:
+    enabled: true
+  traefik:
+    enabled: true
+  traefik-forward-auth-mgmt:
+    enabled: true
+  velero:
+    enabled: false
+catalog:
+  repositories:
+  - labels:
+      kommander.d2iq.io/gitapps-gitrepository-type: dkp
+      kommander.d2iq.io/workspace-default-catalog-repository: "true"
+    name: insights-catalog-applications
+    path: ./dkp-insights-v2.2.2.tar.gz
+  - labels:
+      kommander.d2iq.io/gitapps-gitrepository-type: dkp
+      kommander.d2iq.io/project-default-catalog-repository: "true"
+      kommander.d2iq.io/workspace-default-catalog-repository: "true"
+    name: dkp-catalog-applications
+    path: ./dkp-catalog-applications-v2.2.2.tar.gz
+clusterHostname: ""
+kind: Installation
+EOF
 ```
 
-traefik times out - helm elease needs to be deleted and then dkp re-run
 
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HERE HERE HERE HERE
 
 STILL DOWN: PATRICK SAYS:
 

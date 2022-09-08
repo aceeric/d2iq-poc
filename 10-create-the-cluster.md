@@ -40,6 +40,10 @@ And:
 watch ./dkp describe cluster --cluster-name $CLUSTER_NAME
 ```
 
+## Troubleshooting
+
+If the `describe cluster` command shows any of the nodes as `KIBFailed`, look for failed jobs (max retries exceeded) and delete those jobs. They will be re-generated and retried. Eventually, the process should complete. The jobs appear to be sensitive to slow VMs.
+
 ## Wait for completion
 ```
 kubectl wait --for=condition=ControlPlaneReady clusters/$CLUSTER_NAME --timeout=30m
