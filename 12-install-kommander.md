@@ -117,7 +117,7 @@ This step uses kustomize to patch the kommander manifest. Before writing the pat
 kubectl kustomize ~/kommander | sed -e '/metadata:/,+2d' >| ~/kommander/kommander-install-patched.yaml
 ```
 
-## TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+## HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 
 > JUST USE THIS KOMMANDER YAML FOR NOW
 ```
@@ -351,10 +351,7 @@ kind: Installation
 EOF
 ```
 
-## TODO >>> VERIFY STEPS HERE: https://archive-docs.d2iq.com/dkp/kommander/2.2/install/networked/#verify-installation
-
-
-## Verify
+## Verify preparatory steps
 
 The D2IQ tarball that contains TARs ending with `.gz` which need to be untarred to explode `.tar.gz` files that are actually gzips is confusing. Take a moment to validate steps above. Your output should match:
 
@@ -442,3 +439,34 @@ kubectl -n metallb-system patch daemonset speaker\
 
 kubectl -n metallb-system scale deploy controller --replicas=0
 ```
+
+## Access the Kommander UI
+
+Based on: https://archive-docs.d2iq.com/dkp/kommander/2.2/install/networked/#verify-installation
+
+### Get the Kommander URL
+
+```
+kubectl -n kommander get svc kommander-traefik -o go-template='https://{{with index .status.loadBalancer.ingress 0}}{{or .hostname .ip}}{{end}}/dkp/kommander/dashboard{{ "\n"}}'
+```
+
+Example output:
+```
+https://10.114.174.22/dkp/kommander/dashboard
+```
+
+### Get the Admin credentials
+
+```
+kubectl -n kommander get secret dkp-credentials -o go-template='Username: {{.data.username|base64decode}}{{ "\n"}}Password: {{.data.password|base64decode}}{{ "\n"}}'
+```
+
+Example output:
+```
+Username: scintillating_potato
+Password: 84SDLKSJDFwerfSDFsed54sSDFSDFeryujhfgh85dzgfDSFGDFG435345gsdf
+```
+
+### In the browser
+
+Access the URL in the browser and provide the credentials to access the Kommander UI.
