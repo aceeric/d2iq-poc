@@ -120,6 +120,13 @@ etc...
 
 ## Cleanup
 
+### Disable the service
+```
+for vmip in 10.114.148.54 10.114.148.42 10.114.148.25; do\
+  ssh -t -i d2iq ${USER#*\\}@$vmip "sudo systemctl disable --now simple-https";\
+done
+```
+
 ### Remove the LB
 
 scripts/create-nlb EVO ignored CLEANUP

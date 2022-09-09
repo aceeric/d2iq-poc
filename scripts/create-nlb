@@ -75,7 +75,7 @@ fi
 
 if [[ $VARIANT == EVO ]]; then 
   export VPC_ID=vpc-032dd6de4b91e7327
-  export SUBNET_NAME=us-east-subnet-3
+  export SUBNET_NAME=us-east-subnet-5
   export SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=$SUBNET_NAME"\
                      --query 'Subnets[0].SubnetId' --output text)
 else

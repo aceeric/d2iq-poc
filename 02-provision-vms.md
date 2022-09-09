@@ -14,7 +14,7 @@ for vmname in d2iq-bootstrap d2iq-cp1 d2iq-cp2 d2iq-cp3 d2iq-w1 d2iq-w2 d2iq-w3;
     --ssh-keys $(pwd)/d2iq \
     --nowait \
     project-vpc \
-    us-east-subnet-3 \
+    us-east-subnet-5 \
     devcraft-networking-SecurityGroup-Q6P991Z0L3X6 \
     eVo_AMI_CentOS7 \
     t3.xlarge \
@@ -94,4 +94,11 @@ export d2iq_w2_public_dns_name=ec2-54-226-101-241.compute-1.amazonaws.com
 export d2iq_w3=172.31.29.80
 export d2iq_w3_private_dns_name=ip-172-31-29-80.ec2.internal
 export d2iq_w3_public_dns_name=ec2-54-90-155-110.compute-1.amazonaws.com
+```
+
+## Provision a load balancer
+
+Provision a load balancer over the worker VMs to support access to the workloads from outside of the cluster:
+```
+scripts/create-nlb EVO d2iq-w
 ```

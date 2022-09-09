@@ -4,9 +4,14 @@ Per: https://archive-docs.d2iq.com/dkp/kommander/2.2/install/air-gapped/
 
 **Context: Bootstrap VM**
 
+All this will be done in the context of the new cluster:
+```
+export KUBECONFIG=~/.kube/d2iq-poc.conf
+```
 
+## Hack MetalLB
 
-TESTING 
+Create a MetalLB configuration that enables it to provision a Kubernetes `LoadBalancer` resource.
 ```
 cat << EOF | kubectl apply -f -
 apiVersion: v1
@@ -23,18 +28,6 @@ data:
       - $d2iq_w1/32
 EOF
 ```
-
-
-
-
-
-
-
-
-
-
-
-
 
 ## Directory context
 ```
@@ -126,7 +119,7 @@ kubectl kustomize ~/kommander | sed -e '/metadata:/,+2d' >| ~/kommander/kommande
 
 ## TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 
-> JUST USE THIS KUSTOMIZE FOR NOW
+> JUST USE THIS KOMMANDER YAML FOR NOW
 ```
 cat <<EOF >| ~/kommander/kommander-install-patched.yaml
 ageEncryptionSecretName: sops-age
@@ -358,38 +351,7 @@ kind: Installation
 EOF
 ```
 
-
-
->>>>>>>>>>>>>>>>>>>>>>>>>>>>> HERE HERE HERE HERE
-
-STILL DOWN: PATRICK SAYS:
-
-It needs an LB ingress, this is a type of ingress associated with additional infrastructure in K8s. we mimic the cloud native functionality with MetalLB when we don't have another option. I.E. fully on baremetal servers.
-So for AWS even airgapped preprovsioned we can do that but that is not a standard supported/tested config so those docs  are not on our website
-Similarly the Traefik in nodeport mode doesn't work smoothly because we have a lot of UI and suchs API like Dex that get checked for routing so if the traefik doesn't get a URL it has no route to check, the URL comes form the LB type K8s service.
-let me dig up the old docs we have for 1.8 adn update them to 2.x for you for Tuesday on how to config AWS preprovsioned for AWS K8s operations .
-For Openstack you will still need a routable VIP for MetalLB and with a DNS URL we can do the routing and then shove a proper LB in between UIs and K8s MelaLB VP.
-Infinite configurations infinite complexities to adjust for.
-
-
-
-VERIFY STEPS HERE: https://archive-docs.d2iq.com/dkp/kommander/2.2/install/networked/#verify-installation
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+## TODO >>> VERIFY STEPS HERE: https://archive-docs.d2iq.com/dkp/kommander/2.2/install/networked/#verify-installation
 
 
 ## Verify
@@ -470,4 +432,13 @@ Success looks like:
 kubectl --kubeconfig ~/.kube/d2iq-poc.conf -n kommander wait --for condition=Released helmreleases --all --timeout 15m
 ```
 
+> Wait a few mintutes for **all** the pods and services to be clean and running. There seems to be a few minutes of jitter in there...
 
+## Deactivate MetalLB
+
+```
+kubectl -n metallb-system patch daemonset speaker\
+  -p '{"spec": {"template": {"spec": {"nodeSelector": {"non-existing": "true"}}}}}'
+
+kubectl -n metallb-system scale deploy controller --replicas=0
+```

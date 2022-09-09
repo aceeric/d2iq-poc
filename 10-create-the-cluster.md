@@ -18,10 +18,13 @@ export DOCKER_REGISTRY_CA=~/pki/ca.pem
 
 ## Create the downstream cluster
 
+> TODO when the control plane is behind a load balancer add the load balancer DNS and and IP to the `--extra-sans` parameter
+
 Specify the internal IP of control plane VM 1 for the control plane end point: `$d2iq_cp1`. No override secret is specified. Note - the timeout below is notional for an extremely slow environment:
 ```
 ./dkp create cluster preprovisioned\
   --cluster-name $CLUSTER_NAME\
+  --extra-sans $d2iq_cp1_private_dns_name,$d2iq_cp2_private_dns_name,$d2iq_cp3_private_dns_name,$d2iq_cp1,$d2iq_cp2,$d2iq_cp3\
   --control-plane-endpoint-host $d2iq_cp1\
   --control-plane-replicas 3\
   --worker-replicas 3\
