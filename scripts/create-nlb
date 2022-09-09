@@ -6,16 +6,16 @@
 # wildcard in arg 2.
 #
 # Positional params
-#   $1 - Variant: "EVO" for eVo, or anything else is Commercial AWS. (Commercial AWS variant
-#        is not implemented yet.)
+#   $1 - Variant: "EVO" for eVo, or anything else is Commercial AWS.
 #   $2 - Instance name wildcard. Only evaluated when creating the NLB.
 #   $1 - Operation (optional): if "CLEANUP" then existing ALB is deleted. If "VERIFY", then
 #        LB health check is deployed. Otherwise ignored - treated as CREATE.
 # 
-# Example:
-#   scripts/create-nlb EVO myvmname-
+# Examples:
+#   scripts/create-nlb EVO d2iq-w
+#   scripts/create-nlb AWS d2iq-w
 #
-#   Would create a LB for myvmname-1, myvmname-2, myvmname-3, etc.
+#   Would create a LB for d2iq-w1, d2iq-w2, d2iq-w3, etc.
 #
 
 set -e
@@ -33,7 +33,7 @@ echo "ACTION=$ACTION"
 # script vars
 
 export VPC_ID=
-export SUBNET_AZ=
+export SUBNET_AZ=us-east-1a
 export SUBNET_NAME=
 export SUBNET_ID=
 export TARGET_GROUP_INSTANCE_IDS=
@@ -76,22 +76,13 @@ fi
 if [[ $VARIANT == EVO ]]; then 
   export VPC_ID=vpc-032dd6de4b91e7327
   export SUBNET_NAME=us-east-subnet-3
+  export SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=$SUBNET_NAME"\
+                     --query 'Subnets[0].SubnetId' --output text)
 else
-  echo "TODO commercial AWS"
-  exit 1
+  export VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=default" --query 'Vpcs[0].VpcId' --output text)
+  export SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=$SUBNET_AZ"\
+                     --query 'Subnets[0].SubnetId' --output text)
 fi
-
-# do lookups
-
-echo "looking up subnet ID"
-
-# commercial
-#SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=$SUBNET_AZ"\
-#            --query 'Subnets[0].SubnetId' --output text)
-
-# eVo
-SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=$SUBNET_NAME"\
-            --query 'Subnets[0].SubnetId' --output text)
 
 echo "looking up instance IDs"
 
@@ -103,6 +94,7 @@ done < <(aws ec2 describe-instances\
            --output text)
 TARGET_GROUP_INSTANCE_IDS=$(echo $TARGET_GROUP_INSTANCE_IDS | awk '{$1=$1};1')
 
+echo "VPC_ID                    = $VPC_ID"
 echo "SUBNET_ID                 = $SUBNET_ID"
 echo "TARGET_GROUP_INSTANCE_IDS = $TARGET_GROUP_INSTANCE_IDS"
 
@@ -154,3 +146,8 @@ for PORT in 443 80; do
     --port $PORT  \
     --default-actions Type=forward,TargetGroupArn=$TARGET_GROUP_ARN
 done
+
+echo "To wait for the load balancer to provision, run:"
+echo "watch aws elbv2 describe-load-balancers --names d2iq-poc"
+
+
