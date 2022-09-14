@@ -11,7 +11,7 @@ export KUBECONFIG=~/.kube/d2iq-poc.conf
 
 ## Hack MetalLB
 
-Create a MetalLB configuration that enables it to provision a Kubernetes `LoadBalancer` resource.
+Create a MetalLB configuration that enables it to provision a Kubernetes `LoadBalancer` resource. Reference all three worker VM IP addresses:
 ```
 cat << EOF | kubectl apply -f -
 apiVersion: v1
@@ -26,6 +26,8 @@ data:
       protocol: layer2
       addresses:
       - $d2iq_w1/32
+      - $d2iq_w2/32
+      - $d2iq_w3/32
 EOF
 ```
 
@@ -120,6 +122,9 @@ kubectl kustomize ~/kommander | sed -e '/metadata:/,+2d' >| ~/kommander/kommande
 ## HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 
 > JUST USE THIS KOMMANDER YAML FOR NOW
+
+> Before running this step, in your **Dev Env** get the DNS name of the AWS load balancer: `aws elbv2 describe-load-balancers --names d2iq-poc --query LoadBalancers[0].DNSName --output text`. Example output: `d2iq-poc-da2f1a3ed1bca7c7.elb.us-east-1.amazonaws.com`. Enter that value in the `clusterHostname` field of the manifest below.
+
 ```
 cat <<EOF >| ~/kommander/kommander-install-patched.yaml
 ageEncryptionSecretName: sops-age
@@ -346,7 +351,7 @@ catalog:
       kommander.d2iq.io/workspace-default-catalog-repository: "true"
     name: dkp-catalog-applications
     path: ./dkp-catalog-applications-v2.2.2.tar.gz
-clusterHostname: ""
+clusterHostname: "d2iq-poc-da2f1a3ed1bca7c7.elb.us-east-1.amazonaws.com"
 kind: Installation
 EOF
 ```
@@ -470,3 +475,29 @@ Password: 84SDLKSJDFwerfSDFsed54sSDFSDFeryujhfgh85dzgfDSFGDFG435345gsdf
 ### In the browser
 
 Access the URL in the browser and provide the credentials to access the Kommander UI.
+
+### Access the UI using the loadbalancer
+
+**Context: Dev Env**
+```
+$ aws elbv2 describe-load-balancers --names d2iq-poc --query LoadBalancers[0].DNSName --output text
+d2iq-poc-da2f1a3ed1bca7c7.elb.us-east-1.amazonaws.com
+```
+
+#### NodePort is optional
+
+**Context: Bootstrap VM**
+```
+$ kubectl -n kommander get service/kommander-traefik -ojsonpath='{.spec.ports[?(@.name=="websecure")].nodePort}{"\n"}'
+31686
+```
+
+Then the resulting URL through the load balancer is:
+```
+https://d2iq-poc-da2f1a3ed1bca7c7.elb.us-east-1.amazonaws.com:31686/dkp/kommander/dashboard
+```
+
+Or without the Node Port
+```
+https://d2iq-poc-da2f1a3ed1bca7c7.elb.us-east-1.amazonaws.com/dkp/kommander/dashboard
+```
